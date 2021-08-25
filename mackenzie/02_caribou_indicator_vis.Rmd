@@ -1,0 +1,126 @@
+---
+title: "caribou_indicator_vis"
+author: "Tyler Muhly"
+date: "24/08/2021"
+output:
+  html_document:
+    keep_md: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library (here)
+library (ggplot2)
+library (data.table)
+
+```
+
+## Introduction
+Here we review the amount of current and hypohtetical future amoutns of 'disturbance' in caribou habtiat in the Mackenzie timber supply area. Caribou are a species of concern to First Nations in the region, and to the governments of British Columbia and Canada. First Nations requested an analysis to assess the potential influence of future simulated forest harvest on caribou, using the indicators described here  
+
+'Disturbance' is defined here as areas of caribou range that have been modified by forestry (i.e., areas within 500 m of roads or forestry cutblocks) or burned in the last 40 years. These disturbances have been negatively correlated with caribou survival rates and population abundance, and therefore are often used to indicate the effects of habitat change caused by land use and fire on caribou populations. Other disturbances (e.g., mountain pine beetle or other industrial activities like oil and gas or mining development) also negatively influence caribou, but we do not account for them here, and focus exclusively on fire and forestry here because forestry is the scope of the timber supply review and future forestry and fire can be simulated with the timber supply simulation model. 
+
+Also note that the summary here focuses exclusively on the hypothetical influence of forestry development and fire on caribou habitat. We do not analyze or discuss the potential influence of population management actions, such as maternity pens or wolf reduction, on caribou populations.  
+
+## Results
+Below we summarize simulated hypothetical disturbance levels in caribou critical habitat. We visualize the proportion of critical habitat areas disturbed over time, from 2020 to 2090. We also map simulated disturbance in [assessment watershed areas](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-assessment-watersheds) and [landscape units](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-current) in 2020, 2040, 2060 and 2080. 
+
+### Critical Habitat Disturbance
+In the central group of southern mountain caribou habitat that overlap the Mackenzie timber supply area (i.e., the Kennedy Siding and Moberly subpopulations), disturbance increased from 2020 to 2090. Kennedy Siding low elevation winter range (LEWR) and matrix and Moberly matrix habitat types were relatively high disturbance throughout the simulation, and increased from 85%, 61% and 56% disturbed, respectively, in 2020 to 96%, 90%  and 90% disturbed, respectively, in 2090. Disturbance in Kennedy Siding high elevation summer range (HESR), high elevation winter range (HEWR) and Moberly HEWR increased relatively steadily throughout the simulation, from 3%, 8% and 13%, respectively in 2020, to 50%, 50% and 62% in 2090. Disturbance in Moberly HESR and HEWSR remained relatively stable at or below 10% in early parts of the simulation, but increased up to 41% and 27% in 2090.
+
+
+```{r disturbance by critical habitat central group }
+crithab.plot.data <- read.csv (here ("data/mackenzie/disturbance_by_crit_habitat.csv"),
+                               header = T,
+                               sep = ",")
+## Re-shape the data ##
+crithab.plot.data <- melt (crithab.plot.data, 
+                           id.vars = "herd_hab",
+                           measure.vars = c("perc_disturb_2020", "perc_disturb_2030", "perc_disturb_2040",
+                                            "perc_disturb_2050", "perc_disturb_2060", "perc_disturb_2070",
+                                            "perc_disturb_2080", "perc_disturb_2090")
+                           )
+crithab.plot.data$variable <- as.character (crithab.plot.data$variable)
+crithab.plot.data [crithab.plot.data == "perc_disturb_2020"] <- "2020"				
+crithab.plot.data [crithab.plot.data == "perc_disturb_2030"] <- "2030"				
+crithab.plot.data [crithab.plot.data == "perc_disturb_2040"] <- "2040"				
+crithab.plot.data [crithab.plot.data == "perc_disturb_2050"] <- "2050"				
+crithab.plot.data [crithab.plot.data == "perc_disturb_2060"] <- "2060"				
+crithab.plot.data [crithab.plot.data == "perc_disturb_2070"] <- "2070"				
+crithab.plot.data [crithab.plot.data == "perc_disturb_2080"] <- "2080"				
+crithab.plot.data [crithab.plot.data == "perc_disturb_2090"] <- "2090"
+crithab.plot.data$Year <- as.numeric (crithab.plot.data$variable)
+
+# subset central group
+crithab.plot.data.cnt <- subset (crithab.plot.data, herd_hab == "Moberly_HESR" |  herd_hab == "Moberly_HEWR" |  herd_hab == "Moberly_HEWSR" |  herd_hab == "Moberly_Matrix" | herd_hab == "Kennedy_Siding_HESR" |  herd_hab == "Kennedy_Siding_HEWR" |   herd_hab == "Kennedy_Siding_LEWR" |  herd_hab == "Kennedy_Siding_Matrix")
+
+
+ggplot (data = crithab.plot.data.cnt, 
+        aes (x = Year, y = value, col = herd_hab)) +
+        geom_line (aes (linetype = herd_hab), size = 1) +
+        xlab ("Year") + ylab ("Percent Disturbance") +
+        scale_x_continuous (limits = c (2020, 2090), breaks = seq (2020, 2090, by = 10)) +
+        scale_y_continuous (limits = c (0, 100), breaks = seq (0, 100, by = 10)) +
+        ggtitle ("Central Group Caribou Critical Habitat Simulated Disturbance") +
+        theme (axis.text = element_text (size = 10),
+               axis.title = element_text (size = 12),
+               axis.line.x = element_line (size = 1),
+               axis.line.y = element_line (size = 1),
+               panel.grid.minor = element_blank(),
+               panel.border = element_blank(),
+               panel.background = element_blank(),
+               legend.position = "bottom",
+               legend.key = element_rect (fill = NA)) +
+				scale_linetype_discrete (name = "Herd Name and Habitat Type",
+                                 breaks = c ("Kennedy_Siding_HESR", "Kennedy_Siding_HEWR", 
+                                             "Kennedy_Siding_LEWR", "Kennedy_Siding_Matrix",
+                                             "Moberly_HESR", "Moberly_HEWR", "Moberly_HEWSR",
+                                             "Moberly_Matrix"),
+                                 labels = c ("Kennedy Siding HESR", "Kennedy Siding HEWR", 
+                                             "Kennedy Siding LEWR", "Kennedy Siding Matrix", 
+                                             "Moberly HESR", "Moberly HEWR", "Moberly HEWSR", 
+                                             "Moberly Matrix"),
+                                 guide = guide_legend (ncol = 3)) +
+        scale_colour_discrete (name = "Herd Name and Habitat Type",
+                               breaks = c ("Kennedy_Siding_HESR", "Kennedy_Siding_HEWR", 
+                                           "Kennedy_Siding_LEWR", "Kennedy_Siding_Matrix",
+                                           "Moberly_HESR", "Moberly_HEWR", "Moberly_HEWSR",
+                                           "Moberly_Matrix"),
+                               labels = c ("Kennedy Siding HESR", "Kennedy Siding HEWR", 
+                                           "Kennedy Siding LEWR", "Kennedy Siding Matrix", 
+                                           "Moberly HESR", "Moberly HEWR", "Moberly HEWSR", 
+                                           "Moberly Matrix"),
+                               guide = guide_legend (ncol = 3)) +
+       labs (caption = "HE = high elevation; LE = low elevation; WR  = winter range; SR = summer range; WSR = winter and summer range")
+
+```
+
+
+
+
+```{r disturbance by critical habitat Graham }
+
+
+
+```
+
+
+
+```{r disturbance by critical habitat north }
+
+
+
+```
+
+
+
+
+
+```{r landscape unti distrubance map}
+
+
+
+```
+
+
+

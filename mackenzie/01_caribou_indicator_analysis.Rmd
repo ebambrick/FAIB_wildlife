@@ -12,15 +12,12 @@ library (DBI)
 library (RPostgreSQL)
 library (sf)
 library (raster)
-library (rgrass7)
-
-
-
-
-library (fasterize)
-
-
+library (exactextractr)
 library (data.table)
+library (units)
+library (smoothr)
+
+# library (rgrass7)
 ```
 
 ## Mackenzie Timber Supply Review Caribou Indicator Analysis
@@ -42,17 +39,26 @@ conn <- DBI::dbConnect (PostgreSQL(),
                         user=keyring::key_get('dbuser', keyring = 'postgreSQL') ,
                         password= keyring::key_get('dbpass', keyring = 'postgreSQL'))
 
-## timber supply areas
-sf.mac.tsa.bounds <- st_read (dsn = "D:/tsr/mackenzie/data/mackenzie_tsa.shp")
+### Boundary data
+## mackenzie timber supply area
+sf.mac.tsa.bounds <- st_make_valid (st_read (dsn = "D:/tsr/mackenzie/data/mackenzie_tsa.shp"))
 
 ## caribou critical habitat
-sf.bc.crit <- st_read (conn, 
-                    query = "SELECT * from bc_critical_habitat_all_herds_20200615;") 
-
+sf.bc.crit <- st_make_valid (st_read (conn, 
+                                      query = "SELECT * from bc_critical_habitat_all_herds_20200615;")
+                            )
+sf.bc.crit.mac <- st_make_valid (sf::st_intersection (sf.mac.tsa.bounds, sf.bc.crit)) # in mackenzie only
+rm (sf.bc.crit)
 ## watershed areas
-sf.awa <- st_read (dsn = "D:/tsr/mackenzie/data/fwa_assessment_watershed_poly.shp")
+sf.awa <- st_make_valid (st_read (dsn = "D:/tsr/mackenzie/data/fwa_assessment_watershed_poly.shp"))
+sf.awa.mac <-  st_make_valid (sf::st_intersection (sf.mac.tsa.bounds, sf.awa)) # in mackenzie only
+rm (sf.awa)
+## landscape units
+sf.lu <- st_make_valid (st_read (dsn = "D:/tsr/mackenzie/data/landscape_units_2021.shp"))
+sf.lu.mac <-  st_make_valid (sf::st_intersection (sf.mac.tsa.bounds, sf.lu)) # in mackenzie only
+rm (sf.lu)
 
-
+### Disturbance Data
 ## current roads
 ras.roads.2020 <- raster ("D:/tsr/mackenzie/data/Current_Roads2020.tif")
 ras.roads.2020 <- raster::reclassify (ras.roads.2020, c (1,3,1, 4,Inf,0)) # reclass
@@ -65,7 +71,6 @@ ras.roads.sim <- raster::reclassify (ras.roads.sim, c (-Inf,0,0))
 ## all roads
 ras.roads.all <- ras.roads.sim + ras.roads.2020
 
-
 ## existing fires
 ras.fire.current <- raster ("D:/tsr/mackenzie/data/tsa16_fire_age.tif")
 
@@ -73,7 +78,6 @@ ras.fire.current <- raster ("D:/tsr/mackenzie/data/tsa16_fire_age.tif")
 ras.fire.sim <- raster ("D:/tsr/mackenzie/data/Disturbed_1_7.tif")
 ras.fire.sim <- ras.fire.sim - 329 # changes value to decade of fire
 ras.fire.sim <- raster::reclassify (ras.fire.sim, c (-Inf,0,0)) 
-
 
 ## existing cutblocks
 ras.cut.current <- raster ("D:/tsr/mackenzie/data/tsa16_cutblock_age.tif")
@@ -84,11 +88,9 @@ ras.cut.sim <- ras.cut.sim - 329 # changes value to decade of logging
 ras.cut.sim <- raster::reclassify (ras.cut.sim, c (-Inf,0,0)) 
 
 ```
+I then calculated the amount of 'disturbance' in the Mackenzie TSA by decade. First, I buffered the roads and less than 40 years old cutblocks by 500m at each decade. Note that roads at the start of the simulation had no associated development dates, and we did not estimate a time period for road recovery, therefore all existing roads and the relevant simulated future roads were included as disturbance at each decade. Buffered disturbance was added to less than 40 year old fire disturbance to calculate total disturbance for each decade. 
 
-We then buffered the roads and less than 40 years old cutblocks by 500m at each decade. Note that roads at the start of the simulation had no associated development dates, and we did not estimate a time period for road recovery, therefore all existing roads and simulated future roads were included as disturbance.
-
-
-```{r total disturbance by decade}
+```{r create raster of total disturbance by decade 2020-2090}
 
 ## 2020 (current)
 m <- c (1,40,1, 40,Inf,0) # matrix to make 1 to 40 pixels = 1, else = 0
@@ -101,7 +103,7 @@ ras.cut.road <- ras.cut.current.40 + ras.roads.2020 # disturbances that need a b
 ras.cut.road [ras.cut.road > 1] <- 1 # reclass
 ### here decided to buffer with GRASS r.buffer function; the raster::buffer() function is very slow....
 ### to to this I saved geotiff to open in QGIS; 
-### alternatively, I tired to call grass functions from R using rgrass7 package (see https://gis.stackexchange.com/questions/150121/use-grass-through-r)
+### alternatively, I tried to call grass functions from R using rgrass7 package (see https://gis.stackexchange.com/questions/150121/use-grass-through-r)
 ### But this wasn't straightforward as it requires setting environmental variables (see https://gis.stackexchange.com/questions/377481/unable-to-execute-grass-7-8-in-rstudio)
 ### I played with this, couldn't get it to work, and gave up......
 writeRaster (ras.cut.road, "D:\\tsr\\mackenzie\\data\\ras_cut_road.tif", format = "GTiff", overwrite=TRUE)
@@ -144,10 +146,10 @@ m <- c (1,20,1, 20,Inf,0) # matrix to make 1 to 20 pixels = 1, else = 0; anythin
 ras.fire.current.20 <- raster::reclassify (ras.fire.current, # fire 2000 to 2020
                                            m)
 ras.fire.new.2040 <- raster::reclassify (ras.fire.sim, # fires 2020 to 2040
-                                        c (11,21,1, 21,Inf,0))
+                                         c (11,21,1, 21,Inf,0))
 ras.cut.current.20 <- raster::reclassify (ras.cut.current, # cutblocks 2000 to 2020
                                            m)
-ras.cut.new.2040 <- raster::reclassify (ras.cut.sim, # cutblocks cut 2030 to 2040
+ras.cut.new.2040 <- raster::reclassify (ras.cut.sim, # cutblocks cut 2020 to 2040
                                         c (11,21,1, 21,Inf,0))
 ras.roads.new.2040 <- raster::reclassify (ras.roads.sim, # roads built 2020 to 2040
                                           c (11,21,1, 21,Inf,0))
@@ -171,7 +173,7 @@ ras.fire.new.2050 <- raster::reclassify (ras.fire.sim, # fires 2020 to 2050
                                         c (11,31,1, 31,Inf,0))
 ras.cut.current.10 <- raster::reclassify (ras.cut.current, # cutblocks 2010 to 2020
                                            m)
-ras.cut.new.2050 <- raster::reclassify (ras.cut.sim, # cutblocks cut 2030 to 2050
+ras.cut.new.2050 <- raster::reclassify (ras.cut.sim, # cutblocks cut 2020 to 2050
                                         c (11,31,1, 31,Inf,0))
 ras.roads.new.2050 <- raster::reclassify (ras.roads.sim, # roads built 2020 to 2050
                                           c (11,31,1, 31,Inf,0))
@@ -190,7 +192,7 @@ writeRaster (ras.2050.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_2050.tif",
 ## 2060
 ras.fire.new.2060 <- raster::reclassify (ras.fire.sim, # fires 2020 to 2060
                                         c (11,41,1, 41,Inf,0))
-ras.cut.new.2060 <- raster::reclassify (ras.cut.sim, # cutblocks cut 2030 to 2060
+ras.cut.new.2060 <- raster::reclassify (ras.cut.sim, # cutblocks cut 2020 to 2060
                                         c (11,41,1, 41,Inf,0))
 ras.roads.new.2060 <- raster::reclassify (ras.roads.sim, # roads built 2020 to 2060
                                           c (11,41,1, 41,Inf,0))
@@ -207,7 +209,7 @@ writeRaster (ras.2060.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_2060.tif",
 
 ## 2070
 ras.fire.new.2070 <- raster::reclassify (ras.fire.sim, # fires 2030 to 2070
-                                        c (21,51,1, 51,Inf,0))
+                                         c (21,51,1, 51,Inf,0))
 ras.cut.new.2070 <- raster::reclassify (ras.cut.sim, # cutblocks cut 2030 to 2070
                                         c (21,51,1, 51,Inf,0))
 ras.roads.new.2070 <- raster::reclassify (ras.roads.sim, # roads built 2030 to 2070
@@ -261,38 +263,204 @@ ras.2090.disturb <- ras.fire.new.2090 + ras.2090.cut.road.buff
 ras.2090.disturb [ras.2090.disturb > 1] <- 1 # reclass again...
 writeRaster (ras.2090.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_2090.tif", format = "GTiff", overwrite=TRUE)
 
+```
+
+I summarized the amount of disturbance in caribou critical habitat, and within [assessment watershed areas](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-assessment-watersheds) and [landscape units](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-current) overlapping critical habitat, by decade, from 2020 to 2090.
+ 
+```{r summarize data by area and time}
+
+# get lu's and awa's in critical habitat only
+sf.hab.lu.mac <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.lu.mac))
+sf.hab.awa.mac <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.awa.mac))
+
+# some geometry issues; this fixes them
+sf.hab.lu.mac <- st_cast (sf.hab.lu.mac, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON") 
+sf.hab.awa.mac <- st_cast (sf.hab.awa.mac, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON") 
 
 
+#### extract disturbance by decade ####
+### calculate sum of pixel values (0 or 1) to get area of disturbance, by polygon (there can be multiple polygons/LU if in > 1 critical habitat type)
 
 
+## LUs ##
+sf.hab.lu.mac$disturb_ha_2020 <- exactextractr::exact_extract (ras.2020.disturb, 
+                                                                 sf.hab.lu.mac,
+                                                                'sum')
+sf.hab.lu.mac$disturb_ha_2030 <- exactextractr::exact_extract (ras.2030.disturb, 
+                                                                 sf.hab.lu.mac,
+                                                                'sum')
+sf.hab.lu.mac$disturb_ha_2040 <- exactextractr::exact_extract (ras.2040.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+sf.hab.lu.mac$disturb_ha_2050 <- exactextractr::exact_extract (ras.2050.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+sf.hab.lu.mac$disturb_ha_2060 <- exactextractr::exact_extract (ras.2060.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+sf.hab.lu.mac$disturb_ha_2070 <- exactextractr::exact_extract (ras.2070.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+sf.hab.lu.mac$disturb_ha_2080 <- exactextractr::exact_extract (ras.2080.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+sf.hab.lu.mac$disturb_ha_2090 <- exactextractr::exact_extract (ras.2090.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+# calculate area of polys
+sf.hab.lu.mac$calc_area_m2 <- st_area (sf.hab.lu.mac)
+# drop geometry, calculate area in ha's and subset data
+disturb.hab.lu.mac <- as.data.table (sf::st_drop_geometry (sf.hab.lu.mac))
+disturb.hab.lu.mac$calc_area_ha <- disturb.hab.lu.mac$calc_area_m2 * 0.0001
+disturb.hab.lu.mac$calc_area_ha <- units::drop_units (disturb.hab.lu.mac$calc_area_ha)
+disturb.hab.lu.mac$herd_hab <- paste0 (disturb.hab.lu.mac$herd_name,
+                                       sep = "_",
+                                       disturb.hab.lu.mac$bchab_code 
+                                       )
+disturb.hab.lu.mac <- disturb.hab.lu.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'herd_hab', 'LANDSCAPE1', 'LANDSCAP_2', 'calc_area_ha', 'disturb_ha_2020', 'disturb_ha_2030', 'disturb_ha_2040', 'disturb_ha_2050', 'disturb_ha_2060', 'disturb_ha_2070', 'disturb_ha_2080', 'disturb_ha_2090')]
+# summarize by LU Name
+summ.disturb.lu <- disturb.hab.lu.mac [, .(disturb_ha_2020 = sum (disturb_ha_2020), 
+                                                 disturb_ha_2030 = sum (disturb_ha_2030),
+                                                 disturb_ha_2040 = sum (disturb_ha_2040),
+                                                 disturb_ha_2050 = sum (disturb_ha_2050),
+                                                 disturb_ha_2060 = sum (disturb_ha_2060),
+                                                 disturb_ha_2070 = sum (disturb_ha_2070),
+                                                 disturb_ha_2080 = sum (disturb_ha_2080),
+                                                 disturb_ha_2090 = sum (disturb_ha_2090),
+                                                 calc_area_ha = sum (calc_area_ha)), by = .(LANDSCAP_2)]
+summ.disturb.lu [, perc_disturb_2020 := (disturb_ha_2020 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2030 := (disturb_ha_2030 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2040 := (disturb_ha_2040 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2050 := (disturb_ha_2050 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2060 := (disturb_ha_2060 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2070 := (disturb_ha_2070 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2080 := (disturb_ha_2080 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2090 := (disturb_ha_2090 / calc_area_ha)*100]
+
+write.table (summ.disturb.lu,
+             file = "D:\\tsr\\mackenzie\\data\\disturbance_by_landscape_unit.csv",
+             sep = ",")
 
 
+## Critical Habitat ##
+sf.bc.crit.mac$disturb_ha_2020 <- exactextractr::exact_extract (ras.2020.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2030 <- exactextractr::exact_extract (ras.2030.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2040 <- exactextractr::exact_extract (ras.2040.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2050 <- exactextractr::exact_extract (ras.2050.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2060 <- exactextractr::exact_extract (ras.2060.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2070 <- exactextractr::exact_extract (ras.2070.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2080 <- exactextractr::exact_extract (ras.2080.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2090 <- exactextractr::exact_extract (ras.2090.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+# calculate area of polys
+sf.bc.crit.mac$calc_area_m2 <- st_area (sf.bc.crit.mac)
+# drop geometry, calculate area in ha's and subset data
+disturb.hab.mac <- as.data.table (sf::st_drop_geometry (sf.bc.crit.mac))
+disturb.hab.mac$calc_area_ha <- disturb.hab.mac$calc_area_m2 * 0.0001
+disturb.hab.mac$calc_area_ha <- units::drop_units (disturb.hab.mac$calc_area_ha)
+disturb.hab.mac$herd_hab <- paste0 (disturb.hab.mac$herd_name,
+                                        sep = "_",
+                                        disturb.hab.mac$bchab_code 
+                                       )
+disturb.hab.mac <- disturb.hab.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'herd_hab', 'calc_area_ha', 'disturb_ha_2020', 'disturb_ha_2030', 'disturb_ha_2040', 'disturb_ha_2050', 'disturb_ha_2060', 'disturb_ha_2070', 'disturb_ha_2080', 'disturb_ha_2090')]
+
+# summarize by watershed area
+disturb.hab.mac <- disturb.hab.mac [, .(disturb_ha_2020 = sum (disturb_ha_2020), 
+                                             disturb_ha_2030 = sum (disturb_ha_2030),
+                                             disturb_ha_2040 = sum (disturb_ha_2040),
+                                             disturb_ha_2050 = sum (disturb_ha_2050),
+                                             disturb_ha_2060 = sum (disturb_ha_2060),
+                                             disturb_ha_2070 = sum (disturb_ha_2070),
+                                             disturb_ha_2080 = sum (disturb_ha_2080),
+                                             disturb_ha_2090 = sum (disturb_ha_2090),
+                                             calc_area_ha = sum (calc_area_ha) ), by = .(herd_hab)]
+disturb.hab.mac [, perc_disturb_2020 := (disturb_ha_2020 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2030 := (disturb_ha_2030 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2040 := (disturb_ha_2040 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2050 := (disturb_ha_2050 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2060 := (disturb_ha_2060 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2070 := (disturb_ha_2070 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2080 := (disturb_ha_2080 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2090 := (disturb_ha_2090 / calc_area_ha)*100]
+
+write.table (disturb.hab.mac,
+             file = "D:\\tsr\\mackenzie\\data\\disturbance_by_crit_habitat.csv",
+             sep = ",")
 
 
-ras.cut.road.buff <- raster::buffer(ras.cut.road, width = 500) # buffer roads and cutblocks
+## Watershed Areas ##
+sf.hab.awa.mac$disturb_ha_2020 <- exactextractr::exact_extract (ras.2020.disturb, 
+                                                                 sf.hab.awa.mac,
+                                                                'sum')
+sf.hab.awa.mac$disturb_ha_2030 <- exactextractr::exact_extract (ras.2030.disturb, 
+                                                                 sf.hab.awa.mac,
+                                                                'sum')
+sf.hab.awa.mac$disturb_ha_2040 <- exactextractr::exact_extract (ras.2040.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+sf.hab.awa.mac$disturb_ha_2050 <- exactextractr::exact_extract (ras.2050.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+sf.hab.awa.mac$disturb_ha_2060 <- exactextractr::exact_extract (ras.2060.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+sf.hab.awa.mac$disturb_ha_2070 <- exactextractr::exact_extract (ras.2070.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+sf.hab.awa.mac$disturb_ha_2080 <- exactextractr::exact_extract (ras.2080.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+sf.hab.awa.mac$disturb_ha_2090 <- exactextractr::exact_extract (ras.2090.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+# calculate area of polys
+sf.hab.awa.mac$calc_area_m2 <- st_area (sf.hab.awa.mac)
+# drop geometry, calculate area in ha's and subset data
+disturb.hab.awa.mac <- as.data.table (sf::st_drop_geometry (sf.hab.awa.mac))
+disturb.hab.awa.mac$calc_area_ha <- disturb.hab.awa.mac$calc_area_m2 * 0.0001
+disturb.hab.awa.mac$calc_area_ha <- units::drop_units (disturb.hab.awa.mac$calc_area_ha)
+disturb.hab.awa.mac <- disturb.hab.awa.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'WATERSHED_', 'calc_area_ha', 'disturb_ha_2020', 'disturb_ha_2030', 'disturb_ha_2040', 'disturb_ha_2050', 'disturb_ha_2060', 'disturb_ha_2070', 'disturb_ha_2080', 'disturb_ha_2090')]
+# summarize by LU Name
+summ.disturb.awa <- disturb.hab.awa.mac [, .(disturb_ha_2020 = sum (disturb_ha_2020), 
+                                                 disturb_ha_2030 = sum (disturb_ha_2030),
+                                                 disturb_ha_2040 = sum (disturb_ha_2040),
+                                                 disturb_ha_2050 = sum (disturb_ha_2050),
+                                                 disturb_ha_2060 = sum (disturb_ha_2060),
+                                                 disturb_ha_2070 = sum (disturb_ha_2070),
+                                                 disturb_ha_2080 = sum (disturb_ha_2080),
+                                                 disturb_ha_2090 = sum (disturb_ha_2090),
+                                                 calc_area_ha = sum (calc_area_ha)), by = .(WATERSHED_)]
+summ.disturb.awa [, perc_disturb_2020 := (disturb_ha_2020 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2030 := (disturb_ha_2030 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2040 := (disturb_ha_2040 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2050 := (disturb_ha_2050 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2060 := (disturb_ha_2060 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2070 := (disturb_ha_2070 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2080 := (disturb_ha_2080 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2090 := (disturb_ha_2090 / calc_area_ha)*100]
 
-
-
-
-writeRaster (ras.2030.cut.road.buff, "D:\\tsr\\mackenzie\\data\\test.tif", format="GTiff", overwrite=TRUE)
-
-
-
-plot (ras.2040.cut.road.buff)
-mapview::mapview(ras.cut.current.30)
-
-
-hist(ras.cut.current.40)
-hist(ras.2020.disturb,
-      breaks = c(0, 1))
-
-
-hist(ras.roads.all,
-      breaks = c(0, 1, 10, 20, 30, 40, 50, 60, 70, 80))
-
-
+write.table (summ.disturb.awa,
+             file = "D:\\tsr\\mackenzie\\data\\disturbance_by_watershed.csv",
+             sep = ",")
 
 ```
 
 
- summarized the amount of disturbance in caribou critical habitat, by decade, form 2020 to 2090
+ 
+ 
+ 
