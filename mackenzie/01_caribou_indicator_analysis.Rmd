@@ -52,10 +52,12 @@ rm (sf.bc.crit)
 ## watershed areas
 sf.awa <- st_make_valid (st_read (dsn = "D:/tsr/mackenzie/data/fwa_assessment_watershed_poly.shp"))
 sf.awa.mac <-  st_make_valid (sf::st_intersection (sf.mac.tsa.bounds, sf.awa)) # in mackenzie only
+st_write (sf.awa.mac [, "WATERSHED_"], dsn = "D:/tsr/mackenzie/data/fwa_mac_poly.shp")
 rm (sf.awa)
 ## landscape units
 sf.lu <- st_make_valid (st_read (dsn = "D:/tsr/mackenzie/data/landscape_units_2021.shp"))
 sf.lu.mac <-  st_make_valid (sf::st_intersection (sf.mac.tsa.bounds, sf.lu)) # in mackenzie only
+st_write (sf.lu.mac [, "LANDSCAP_2"], dsn = "D:/tsr/mackenzie/data/lu_mac_poly.shp")
 rm (sf.lu)
 
 ### Disturbance Data

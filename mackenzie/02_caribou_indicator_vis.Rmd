@@ -12,7 +12,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library (here)
 library (ggplot2)
 library (data.table)
-
+library (sf)
+library (dplyr)
+library (viridis)
+library (ggrepel)
 ```
 
 ## Introduction
@@ -25,16 +28,73 @@ Also note that the summary here focuses exclusively on the hypothetical influenc
 ## Results
 Below we summarize simulated hypothetical disturbance levels in caribou critical habitat. We visualize the proportion of critical habitat areas disturbed over time, from 2020 to 2090. We also map simulated disturbance in [assessment watershed areas](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-assessment-watersheds) and [landscape units](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-current) in 2020, 2040, 2060 and 2080. 
 
+### Disturabnce by Landscape Unit
+Caribou subpopulations that overlap the Mackenzie TSA include Kennedy Siding, Moberly, Graham, Frog, Gataga, Muskwa, Pink Mountain, Rabbit, Spatsizi, Finlay, Thutade, Chase, Wolverine and Scott. 
+
+```{r subpop map }
+# load data
+sf.caribou.herds <- st_make_valid (st_read (dsn = here ("data/mackenzie/mackenzie_caribou_herds.shp")))
+sf.lu <- st_make_valid (st_read (dsn = here ("data/mackenzie/lu_mac_poly.shp")))
+
+# build map
+ggplot (data = sf.lu) +
+        geom_sf (data = sf.lu, fill = "lightblue") +
+        geom_sf (data = sf.caribou.herds, fill = NA, linetype = "dotdash", size = 1.1, colour = "green") +
+        xlab("Longitude") + ylab("Latitude") +
+        ggtitle ("Caribou Subpoplaution Herd Boundaries Overlaping 
+        the Mackenzie Timber Supply Area") +
+        ggrepel::geom_label_repel (data = sf.caribou.herds,
+                                   aes (label = CARIBOU_TA, geometry = geometry),
+                                   stat = "sf_coordinates",
+                                   min.segment.length = 0,
+                                   label.size = 0,
+                                   segment.curvature = -0.1,
+                                   segment.ncp = 3,
+                                   segment.angle = 20,
+                                   arrow = arrow(length = unit(0.015, "npc"))
+                                   ) +
+        labs (caption = "Landscape units shown in light blue.")
+
+```
+
+
+
+```{r landscape unit disturbance map}
+
+# load data
+tab.lu.disturb.data <- as.data.table (read.csv (here ("data/mackenzie/disturbance_by_landscape_unit.csv"),
+                                               header = T,
+                                               sep = ","))
+
+# join data
+sf.lu <- dplyr::full_join (sf.lu, tab.lu.disturb.data, by = "LANDSCAP_2")
+
+# build map
+ggplot (data = sf.lu) +
+        geom_sf (aes (fill = perc_disturb_2020)) +
+        geom_sf (data = sf.caribou.herds, fill = NA, linetype = "dashed", size = 1.1, colour = "green") +
+       # geom_sf_label(data = sf.caribou.herds, aes(label = CARIBOU_TA)) +
+        xlab("Longitude") + ylab("Latitude") +
+        ggtitle ("Disturbance by Landscape Unit in 2020") +
+        scale_fill_viridis(option="inferno")
+  
+  
+```
+
+
+- map of difference between 2020 adn 2090?
+
+
+
 ### Critical Habitat Disturbance
-In the central group of southern mountain caribou habitat that overlap the Mackenzie timber supply area (i.e., the Kennedy Siding and Moberly subpopulations), disturbance increased from 2020 to 2090. Kennedy Siding low elevation winter range (LEWR) and matrix and Moberly matrix habitat types were relatively high disturbance throughout the simulation, and increased from 85%, 61% and 56% disturbed, respectively, in 2020 to 96%, 90%  and 90% disturbed, respectively, in 2090. Disturbance in Kennedy Siding high elevation summer range (HESR), high elevation winter range (HEWR) and Moberly HEWR increased relatively steadily throughout the simulation, from 3%, 8% and 13%, respectively in 2020, to 50%, 50% and 62% in 2090. Disturbance in Moberly HESR and HEWSR remained relatively stable at or below 10% in early parts of the simulation, but increased up to 41% and 27% in 2090.
+In the critical habitat of the central group of southern mountain caribou that overlap the Mackenzie TSA (i.e., the Kennedy Siding and Moberly subpopulations), simulated disturbance increased from 2020 to 2090. Kennedy Siding low elevation winter range (LEWR) and matrix and Moberly matrix habitat types were relatively high disturbance throughout the simulation, and increased from 85%, 61% and 56% disturbed, respectively, in 2020 to 96%, 90%  and 90% disturbed, respectively, in 2090. Disturbance in Kennedy Siding high elevation summer range (HESR), high elevation winter range (HEWR) and Moberly HEWR increased relatively steadily throughout the simulation, from 3%, 8% and 13%, respectively in 2020, to 50%, 50% and 62% in 2090. Disturbance in Moberly HESR and high elevation winter and summer range (HEWSR) remained relatively stable at or below 10% in early parts of the simulation, but increased up to 41% and 27% in 2090.
 
-
-```{r disturbance by critical habitat central group }
-crithab.plot.data <- read.csv (here ("data/mackenzie/disturbance_by_crit_habitat.csv"),
-                               header = T,
-                               sep = ",")
+```{r disturbance by critical habitat central group, warning = F, message = F, echo = F, include = F}
+crithab.plot.data <- as.data.table (read.csv (here ("data/mackenzie/disturbance_by_crit_habitat.csv"),
+                                               header = T,
+                                               sep = ","))
 ## Re-shape the data ##
-crithab.plot.data <- melt (crithab.plot.data, 
+crithab.plot.data <- melt.data.table (crithab.plot.data, 
                            id.vars = "herd_hab",
                            measure.vars = c("perc_disturb_2020", "perc_disturb_2030", "perc_disturb_2040",
                                             "perc_disturb_2050", "perc_disturb_2060", "perc_disturb_2070",
@@ -95,32 +155,89 @@ ggplot (data = crithab.plot.data.cnt,
 
 ```
 
+In the critical habitat of the Graham subpopulation that overlap the Mackenzie timber supply area, simulated disturbance increased from 2020 to 2090. In 2020 to 2040, disturbance was relatively high in matrix and HEWSR critical habitat (approximately 25%), and increased steadily up to approximately 65% from 2040 to 2090. Disturbance was relatively low (i.e., 8%) in HESR critical habitat in 2020 but increased steadily to 29% by 2090.
 
+```{r disturbance by critical habitat Graham, warning = F, message = F, echo = F, include = F}
 
+# subset Graham
+crithab.plot.data.grh <- subset (crithab.plot.data, herd_hab == "Graham_HESR" |  herd_hab == "Graham_HEWSR" |  herd_hab == "Graham_Matrix")
 
-```{r disturbance by critical habitat Graham }
+ggplot (data = crithab.plot.data.grh, 
+        aes (x = Year, y = value, col = herd_hab)) +
+        geom_line (aes (linetype = herd_hab), size = 1) +
+        xlab ("Year") + ylab ("Percent Disturbance") +
+        scale_x_continuous (limits = c (2020, 2090), breaks = seq (2020, 2090, by = 10)) +
+        scale_y_continuous (limits = c (0, 100), breaks = seq (0, 100, by = 10)) +
+        ggtitle ("Graham Caribou Critical Habitat Simulated Disturbance") +
+        theme (axis.text = element_text (size = 10),
+               axis.title = element_text (size = 12),
+               axis.line.x = element_line (size = 1),
+               axis.line.y = element_line (size = 1),
+               panel.grid.minor = element_blank(),
+               panel.border = element_blank(),
+               panel.background = element_blank(),
+               legend.position = "bottom",
+               legend.key = element_rect (fill = NA)) +
+				scale_linetype_discrete (name = "Herd Name and Habitat Type",
+                                 breaks = c ("Graham_HESR", "Graham_HEWSR", 
+                                             "Graham_Matrix"),
+                                 labels = c ("Graham HESR", "Graham HEWSR", 
+                                             "Graham Matrix")) +
+        scale_colour_discrete (name = "Herd Name and Habitat Type",
+                               breaks = c ("Graham_HESR", "Graham_HEWSR", 
+                                             "Graham_Matrix"),
+                                 labels = c ("Graham HESR", "Graham HEWSR", 
+                                             "Graham Matrix")) +
+       labs (caption = "HE = high elevation; LE = low elevation; WR  = winter range; SR = summer range; WSR = winter and summer range")
 
+```
 
+In the ranges of the Frog, Gataga, Muskwa, Pink Mountain, Rabbit and Spatsizi subpopulations that overlap the Mackenzie TSA, simulated disturbance remained relatively low (i.e., <15%) throughout the simulation period. Disturbance increased in the Finlay (from 16% to 37%) and Thutade (from 12% to 25%) subpopulations throughout the simulation period. Simulated disturbance was relatively high in the Chase, Wolverine and Scott herd ranges throughout the simulation, starting in 2020 from 34%, 43% and 74%, respectively, and increasing to 52%, 63% and 94%, respectively, by 2090.
+
+```{r disturbance by critical habitat north, warning = F, message = F, echo = F, include = F}
+
+# subset northern herds
+crithab.plot.data.nrth <- subset (crithab.plot.data, herd_hab == "Chase_None" |  herd_hab == "Finlay_None" |  herd_hab == "Frog_None" |  herd_hab == "Gataga_None" | herd_hab == "Rabbit_None" |  herd_hab == "Spatsizi_None" |   herd_hab == "Thutade_None" |  herd_hab == "Wolverine_None" |  herd_hab == "Muskwa_None" |  herd_hab == "Scott_None" |  herd_hab == "Pink_Mountain_None")
+
+ggplot (data = crithab.plot.data.nrth, 
+        aes (x = Year, y = value, col = herd_hab)) +
+        geom_line (aes (linetype = herd_hab), size = 1) +
+        xlab ("Year") + ylab ("Percent Disturbance") +
+        scale_x_continuous (limits = c (2020, 2090), breaks = seq (2020, 2090, by = 10)) +
+        scale_y_continuous (limits = c (0, 100), breaks = seq (0, 100, by = 10)) +
+        ggtitle ("Central Group Caribou Critical Habitat Simulated Disturbance") +
+        theme (axis.text = element_text (size = 10),
+               axis.title = element_text (size = 12),
+               axis.line.x = element_line (size = 1),
+               axis.line.y = element_line (size = 1),
+               panel.grid.minor = element_blank(),
+               panel.border = element_blank(),
+               panel.background = element_blank(),
+               legend.position = "bottom",
+               legend.key = element_rect (fill = NA)) +
+				scale_linetype_discrete (name = "Herd Name",
+                                 breaks = c ("Chase_None", "Finlay_None", "Frog_None", "Gataga_None",
+                                             "Rabbit_None", "Spatsizi_None", "Thutade_None",
+                                             "Wolverine_None", "Muskwa_None", "Scott_None", "Pink_Mountain_None"),
+                                 labels = c ("Chase", "Finlay", "Frog", "Gataga", 
+                                             "Rabbit", "Spatsizi", "Thutade", 
+                                             "Wolverine", "Muskwa", "Scott", "Pink Mountain"),
+                                 guide = guide_legend (ncol = 3)) +
+        scale_colour_discrete (name = "Herd Name",
+                               breaks = c ("Chase_None", "Finlay_None", "Frog_None", "Gataga_None",
+                                             "Rabbit_None", "Spatsizi_None", "Thutade_None",
+                                             "Wolverine_None", "Muskwa_None", "Scott_None", "Pink_Mountain_None"),
+                                 labels = c ("Chase", "Finlay", "Frog", "Gataga", 
+                                             "Rabbit", "Spatsizi", "Thutade", 
+                                             "Wolverine", "Muskwa", "Scott", "Pink Mountain"),
+                               guide = guide_legend (ncol = 3)) 
 
 ```
 
 
 
-```{r disturbance by critical habitat north }
+# Caveats
 
-
-
-```
-
-
-
-
-
-```{r landscape unti distrubance map}
-
-
-
-```
-
-
+- roads pemranent
+-distubrance only in portion of rnage overlappign the tsa
 
