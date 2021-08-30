@@ -1,10 +1,12 @@
 ---
-title: "Caribou Habitat Disturbance Analysis of the Mackenzie Timber Supply Review Base Case"
+title: Caribou Habitat Disturbance Analysis of the Mackenzie Timber Supply Review
+  Base Case
 author: "Tyler Muhly"
 date: "24/08/2021"
 output:
   html_document:
     keep_md: yes
+  word_document: default
 ---
 
 
@@ -66,10 +68,10 @@ Critical habitat has not been defined for Frog, Gataga, Muskwa, Pink Mountain, R
 ## Conclusions and Considerations
 In general, forestry and fire disturbance, as simulated by the Mackenzie timber supply base case model, increased between 2020 to 2090 across the Mackenzie timber supply area (TSA), suggesting increased loss of habitat and risk to caribou subpopulations in this scenario. The Kennedy Siding, Graham, Chase, Moberly and Finlay subpopulations appeared to be at greatest risk to hypothetical simulated future forestry development in the region. The government of British Columbia has recently (ca. 2015) funded a caribou recovery program to develop and implement policies to sustain and recover caribou populations across the province. This program is in the process of developing habitat protection and restoration policies and actions for caribou that will likely change the trajectories of forestry development simulated here. Such actions may also influence timber supply. 
 
-It is important to clarify here that the results of this analysis are based on outputs from a forestry simulation model designed to support a timber supply determination. Forestry was simulated under a single forest harvest scenario (referred to as a 'base case'), that may not occur in reality.  Efforts were made to parameterize the timber supply model in such a way to simulate current forestry practices, but such practices are very likely to change the the future. Thus, the accuracy of the simulation is likely to decrease the further into the future that is being simulated (e.g., the accuracy of outputs from 2020 to 2040 are likely greater than the accuracy of outputs from 2070 to 2090). Also important to consider is that we only simulated forestry development and fire with this model, which may underestimate the total amount of current and future disturbance in the area. 
+It is important to clarify here that the results of this analysis are based on outputs from a forestry simulation model designed to support a timber supply determination. Forestry was simulated under a single forest harvest scenario (referred to as a 'base case'), that may not occur in reality.  Efforts were made to parameterize the timber supply model in such a way to simulate current forestry practices at a large scale and account for the effects of those practices to the extent possible in the timber supply assessment. However, such practices are very likely to change the the future in ways that cannot be anticipated. Also important to consider is that we only simulated forestry development and fire with this model, which may underestimate the total amount of current and future disturbance in the area. 
 
-A key assumption of the model described here is that roads, and areas within 500 m of roads, were considered 'permanent' disturbances throughout the simulation period. Thus, as forestry development progressed in the simulation, they established road disturbances that never recovered. This assumption may result in an overestimation of the amount of simulated disturbance in caribou habitat, as in reality, forestry roads may recover or be restored. Unfortunately, while we can track the timing of road development in the forestry simulation model, the existing road data does not have a date of development. It's also unclear what the rate of recovery is for roads, and this likely varies significantly across road types, and therefore it is difficult to apply a restoration rate to roads.  
+A key assumption of the model described here is that roads, and areas within 500 m of roads, were considered 'permanent' disturbances throughout the simulation period. Thus, as forestry development progressed in the simulation, they established road disturbances that never recovered. This may result in an overestimation of the amount of simulated disturbance in caribou habitat. However, an assessment of forestry road recovery was outside the scope of this analysis, and thus it's unclear if, or what the rate of recovery is for roads that we could use to parameterize to a model. 
 
-With regard to fire disturbance, it is important to note here that we considered all areas within fire perimeters as burned. In reality, the intensity of burns within these perimeters varies, likely with similar variable effects on the quality of caribou habitat. 
+With regard to fire disturbance, it is important to note here that we considered all areas within fire perimeters as burned. In reality, the intensity of burns within these perimeters varies, likely with similar variable effects on the quality of caribou habitat. Estimates of fire disturbance could be fine-tuned to account for fire intensity, however, road and cutblocks made a much larger contribution to disturbance overall.
 
 Finally, it is important to consider that we only simulated forestry disturbance in portions of the caribou habitat areas that overlapped the Mackenzie TSA. Most of the caribou subpopulations only partially overlapped the Mackenzie TSA, and thus hypothetical future disturbance trends across the whole range of a particular subpopulation may be different than what we describe here.
