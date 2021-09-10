@@ -32,6 +32,8 @@ Initially, disturbance was highest (>50% to 75%) in landscape units in the centr
 
 ![](02_caribou_indicator_vis_files/figure-html/landscape unit disturbance map 2020-1.png)<!-- -->
 
+![](02_caribou_indicator_vis_files/figure-html/landscape unit disturbance map 2030-1.png)<!-- -->
+
 ![](02_caribou_indicator_vis_files/figure-html/landscape unit disturbance map 2040-1.png)<!-- -->
 
 ![](02_caribou_indicator_vis_files/figure-html/landscape unit disturbance map 2060-1.png)<!-- -->
@@ -43,6 +45,8 @@ Initially, disturbance was highest (>50% to 75%) in landscape units in the centr
 ### Disturbance by Watershed Area
 Maps of simulated disturbance by watershed area provide a finer spatial resolution than landscape units of trends in disturbance. In 2020, disturbance was relatively high in watersheds in the Scott caribou subpopulation range, western portions of the Kennedy Siding subpopulation range, southeast portions of the Wolverine subpopulation range and south-central portions of the Chase subpopulation range. By 2040, simulated disturbance increased in watersheds in the Scott subpopulation range and northwest portion of the Finlay subpopulation range. By 2060 and 2080, simulated disturbance in watersheds increased in the Wolverine, Chase and Graham subpopulation ranges. Change in disturbance between 2020 and 2090 was greatest (>50%) in watershed areas overlapping the Kennedy Siding, Scott, Graham and Finlay subpopulation ranges.     
 ![](02_caribou_indicator_vis_files/figure-html/watershed disturbance map 2020-1.png)<!-- -->
+
+![](02_caribou_indicator_vis_files/figure-html/watershed disturbance map 2030-1.png)<!-- -->
 
 ![](02_caribou_indicator_vis_files/figure-html/watershed disturbance map 2040-1.png)<!-- -->
 
@@ -61,9 +65,16 @@ In the critical habitat of the Graham caribou subpopulation that overlapped the 
 
 ![](02_caribou_indicator_vis_files/figure-html/disturbance by critical habitat Graham-1.png)<!-- -->
 
-Critical habitat has not been defined for Frog, Gataga, Muskwa, Pink Mountain, Rabbit and Spatsizi subpopulations, so here we estimate disturbance with their ranges. In the ranges of the Frog, Gataga, Muskwa, Pink Mountain, Rabbit and Spatsizi subpopulations that overlapped the Mackenzie TSA, simulated disturbance remained relatively low (i.e., <15%) throughout the simulation period. Disturbance increased in the Finlay (from 16% to 37%) and Thutade (from 12% to 25%) subpopulations throughout the simulation period. Simulated disturbance was relatively high in the Chase, Wolverine and Scott herd ranges throughout the simulation, starting in 2020 from 34%, 43% and 74%, respectively, and increasing to 52%, 63% and 94%, respectively, by 2090.
+At the time of this analysis, critical habitat was not defined for the Frog, Gataga, Muskwa, Pink Mountain, Rabbit and Spatsizi subpopulations, so here we estimate disturbance within their ranges at higher (greater than 1,300 m) and lower (less than or equal to 1,300 m) elevations. 
 
-![](02_caribou_indicator_vis_files/figure-html/disturbance by critical habitat north-1.png)<!-- -->
+At high elevations, disturbance remained relatively low (i.e., <10%) within the range of most of the subpopulations throughout the simulation period. The exceptions were the Scott subpopulation, which increased from 28% to 58% from 2020 to 2040, the Wolverine subpopulation, which increased from 11% to 32% from 2020 to 2090 and the Chase subpopulation, which increased from 11% to 24% from 2020 to 2090.
+
+![](02_caribou_indicator_vis_files/figure-html/disturbance high elevation north-1.png)<!-- -->
+
+At low elevations, disturbance decreased slightly in the Rabbit, Gataga and Frog subpopulation ranges from 2020 to 2090. Disturbance was relatively stable in the Muskwa subpopulation range throughout the simulation. Disturbance increased in the Spatsizi subpopulation from 20% to 29% between 2020 and 2030. Disturbance increased in the Finlay and Thutade subpopulations from ~35% to ~55-65% between 2050 and 2090. Disturbance increased in the Chase and Wolverine subpopulations from ~65% to ~80-90% between 2030 and 2090. Disturbance increased in the Scott subpopulation from 81% to 98% between 2020 and 2040.
+
+![](02_caribou_indicator_vis_files/figure-html/disturbance low elevation north-1.png)<!-- -->
+
 
 ## Conclusions and Considerations
 In general, forestry and fire disturbance, as simulated by the Mackenzie timber supply base case model, increased between 2020 to 2090 across the Mackenzie timber supply area (TSA), suggesting increased loss of habitat and risk to caribou subpopulations in this scenario. The Kennedy Siding, Graham, Chase, Moberly and Finlay subpopulations appeared to be at greatest risk to hypothetical simulated future forestry development in the region. The government of British Columbia has recently (ca. 2015) funded a caribou recovery program to develop and implement policies to sustain and recover caribou populations across the province. This program is in the process of developing habitat protection and restoration policies and actions for caribou that will likely change the trajectories of forestry development simulated here. Such actions may also influence timber supply. 

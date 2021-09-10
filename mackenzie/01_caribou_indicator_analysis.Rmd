@@ -43,6 +43,9 @@ conn <- DBI::dbConnect (PostgreSQL(),
 ## mackenzie timber supply area
 sf.mac.tsa.bounds <- st_make_valid (st_read (dsn = "D:/tsr/mackenzie/data/mackenzie_tsa.shp"))
 
+## elevation class data
+sf.elev <- st_make_valid (st_read (dsn = "D:/tsr/mackenzie/data/elev_1300.shp"))
+
 ## caribou critical habitat
 sf.bc.crit <- st_make_valid (st_read (conn, 
                                       query = "SELECT * from bc_critical_habitat_all_herds_20200615;")
@@ -267,7 +270,7 @@ writeRaster (ras.2090.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_2090.tif",
 
 ```
 
-I summarized the amount of disturbance in caribou critical habitat, and within [assessment watershed areas](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-assessment-watersheds) and [landscape units](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-current) overlapping critical habitat, by decade, from 2020 to 2090.
+I summarized the amount of disturbance in caribou critical habitat, where it is defined, or in areas greater then or less than 1,300 m in elevation where it is not defined, and within [assessment watershed areas](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-assessment-watersheds) and [landscape units](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-current) overlapping critical habitat, by decade, from 2020 to 2090.
  
 ```{r summarize data by area and time}
 
@@ -275,14 +278,19 @@ I summarized the amount of disturbance in caribou critical habitat, and within [
 sf.hab.lu.mac <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.lu.mac))
 sf.hab.awa.mac <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.awa.mac))
 
+# add elevation class (1,300m)
+sf.hab.mac.elev <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.elev))
+
 # some geometry issues; this fixes them
 sf.hab.lu.mac <- st_cast (sf.hab.lu.mac, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON") 
-sf.hab.awa.mac <- st_cast (sf.hab.awa.mac, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON") 
+sf.hab.awa.mac <- st_cast (sf.hab.awa.mac, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON")
+sf.hab.mac.elev <- st_cast (sf.hab.mac.elev, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON") 
+
+
 
 
 #### extract disturbance by decade ####
 ### calculate sum of pixel values (0 or 1) to get area of disturbance, by polygon (there can be multiple polygons/LU if in > 1 critical habitat type)
-
 
 ## LUs ##
 sf.hab.lu.mac$disturb_ha_2020 <- exactextractr::exact_extract (ras.2020.disturb, 
@@ -344,6 +352,67 @@ write.table (summ.disturb.lu,
              sep = ",")
 
 
+## ELEVATION ##
+sf.hab.mac.elev$disturb_ha_2020 <- exactextractr::exact_extract (ras.2020.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+sf.hab.mac.elev$disturb_ha_2030 <- exactextractr::exact_extract (ras.2030.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+sf.hab.mac.elev$disturb_ha_2040 <- exactextractr::exact_extract (ras.2040.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+sf.hab.mac.elev$disturb_ha_2050 <- exactextractr::exact_extract (ras.2050.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+sf.hab.mac.elev$disturb_ha_2060 <- exactextractr::exact_extract (ras.2060.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+sf.hab.mac.elev$disturb_ha_2070 <- exactextractr::exact_extract (ras.2070.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+sf.hab.mac.elev$disturb_ha_2080 <- exactextractr::exact_extract (ras.2080.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+sf.hab.mac.elev$disturb_ha_2090 <- exactextractr::exact_extract (ras.2090.disturb, 
+                                                               sf.hab.mac.elev,
+                                                               'sum')
+# calculate area of polys
+sf.hab.mac.elev$calc_area_m2 <- st_area (sf.hab.mac.elev)
+# drop geometry, calculate area in ha's and subset data
+disturb.hab.elev.mac <- as.data.table (sf::st_drop_geometry (sf.hab.mac.elev))
+disturb.hab.elev.mac$calc_area_ha <- disturb.hab.elev.mac$calc_area_m2 * 0.0001
+disturb.hab.elev.mac$calc_area_ha <- units::drop_units (disturb.hab.elev.mac$calc_area_ha)
+disturb.hab.elev.mac$herd_elev <- paste0 (disturb.hab.elev.mac$herd_name,
+                                       sep = "_",
+                                       disturb.hab.elev.mac$elev 
+                                       )
+disturb.hab.elev.mac <- disturb.hab.elev.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'herd_elev', 'calc_area_ha', 'disturb_ha_2020', 'disturb_ha_2030', 'disturb_ha_2040', 'disturb_ha_2050', 'disturb_ha_2060', 'disturb_ha_2070', 'disturb_ha_2080', 'disturb_ha_2090')]
+
+# summarize by elevation
+disturb.hab.elev.mac <- disturb.hab.elev.mac [, .(disturb_ha_2020 = sum (disturb_ha_2020), 
+                                             disturb_ha_2030 = sum (disturb_ha_2030),
+                                             disturb_ha_2040 = sum (disturb_ha_2040),
+                                             disturb_ha_2050 = sum (disturb_ha_2050),
+                                             disturb_ha_2060 = sum (disturb_ha_2060),
+                                             disturb_ha_2070 = sum (disturb_ha_2070),
+                                             disturb_ha_2080 = sum (disturb_ha_2080),
+                                             disturb_ha_2090 = sum (disturb_ha_2090),
+                                             calc_area_ha = sum (calc_area_ha) ), by = .(herd_elev)]
+disturb.hab.elev.mac [, perc_disturb_2020 := (disturb_ha_2020 / calc_area_ha)*100]
+disturb.hab.elev.mac [, perc_disturb_2030 := (disturb_ha_2030 / calc_area_ha)*100]
+disturb.hab.elev.mac [, perc_disturb_2040 := (disturb_ha_2040 / calc_area_ha)*100]
+disturb.hab.elev.mac [, perc_disturb_2050 := (disturb_ha_2050 / calc_area_ha)*100]
+disturb.hab.elev.mac [, perc_disturb_2060 := (disturb_ha_2060 / calc_area_ha)*100]
+disturb.hab.elev.mac [, perc_disturb_2070 := (disturb_ha_2070 / calc_area_ha)*100]
+disturb.hab.elev.mac [, perc_disturb_2080 := (disturb_ha_2080 / calc_area_ha)*100]
+disturb.hab.elev.mac [, perc_disturb_2090 := (disturb_ha_2090 / calc_area_ha)*100]
+
+write.table (disturb.hab.elev.mac,
+             file = "D:\\tsr\\mackenzie\\data\\disturbance_by_herd_elev.csv",
+             sep = ",")
+
+
 ## Critical Habitat ##
 sf.bc.crit.mac$disturb_ha_2020 <- exactextractr::exact_extract (ras.2020.disturb, 
                                                                sf.bc.crit.mac,
@@ -381,7 +450,7 @@ disturb.hab.mac$herd_hab <- paste0 (disturb.hab.mac$herd_name,
                                        )
 disturb.hab.mac <- disturb.hab.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'herd_hab', 'calc_area_ha', 'disturb_ha_2020', 'disturb_ha_2030', 'disturb_ha_2040', 'disturb_ha_2050', 'disturb_ha_2060', 'disturb_ha_2070', 'disturb_ha_2080', 'disturb_ha_2090')]
 
-# summarize by watershed area
+# summarize by crit hab
 disturb.hab.mac <- disturb.hab.mac [, .(disturb_ha_2020 = sum (disturb_ha_2020), 
                                              disturb_ha_2030 = sum (disturb_ha_2030),
                                              disturb_ha_2040 = sum (disturb_ha_2040),
