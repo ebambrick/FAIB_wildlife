@@ -111,7 +111,7 @@ ras.cut.road [ras.cut.road > 1] <- 1 # reclass
 ### alternatively, I tried to call grass functions from R using rgrass7 package (see https://gis.stackexchange.com/questions/150121/use-grass-through-r)
 ### But this wasn't straightforward as it requires setting environmental variables (see https://gis.stackexchange.com/questions/377481/unable-to-execute-grass-7-8-in-rstudio)
 ### I played with this, couldn't get it to work, and gave up......
-writeRaster (ras.cut.road, "D:\\tsr\\mackenzie\\data\\ras_cut_road.tif", format = "GTiff", overwrite=TRUE)
+writeRaster (ras.cut.road, "D:\\tsr\\mackenzie\\data\\ras_cut_road_2020.tif", format = "GTiff", overwrite=TRUE)
 ras.2020.cut.road.buff <- raster ("D:/tsr/mackenzie/data/ras_2020_cut_road_buff.tif") # the buffered raster
 ras.2020.cut.road.buff [ras.2020.cut.road.buff > 1] <- 1 # '2' are buffered areas; reclass to '1'
 ras.2020.cut.road.buff [is.na (ras.2020.cut.road.buff [])] <- 0 # make NA's = 0
@@ -527,6 +527,235 @@ summ.disturb.awa [, perc_disturb_2090 := (disturb_ha_2090 / calc_area_ha)*100]
 
 write.table (summ.disturb.awa,
              file = "D:\\tsr\\mackenzie\\data\\disturbance_by_watershed.csv",
+             sep = ",")
+
+```
+
+## Back-casted roads summary
+Here I use a [forest harvest simulation model](https://github.com/bcgov/clus) to estimate historic development of the road network in the Mackenzie timber supply area. The model takes data on the location of historic cutblocks and the existing road network and estimates the timing of road development based on the occurrence and timing of cutblock development. Disturbance data, including roads, cutlbocks and fire are summarized by decacde from 1980 to 2010.   
+
+```{r back-cast roads, cutlbocks and fires}
+
+# Roads
+ras.roads.hist <- raster ("D:/tsr/mackenzie/data/MacKenzie_TSA_roads_1980_2020.tif")
+ras.roads.1980 <- raster::reclassify (ras.roads.hist, # all roads before 1980
+                                      c (NA,NA, 0, -Inf,0,1, 0,Inf,0))
+ras.roads.1990 <- raster::reclassify (ras.roads.hist, # all roads before 1990
+                                      c (NA,NA, 0, -Inf,10,1, 10,Inf,0))
+ras.roads.2000 <- raster::reclassify (ras.roads.hist, # all roads before 2000
+                                      c (NA,NA, 0, -Inf,20,1, 20,Inf,0))
+ras.roads.2010 <- raster::reclassify (ras.roads.hist, # all roads before 2010
+                                      c (NA,NA, 0, -Inf,30,1, 30,Inf,0))
+# Cutblocks
+ras.cut.current <- raster ("D:/tsr/mackenzie/data/tsa16_cutblock_age.tif")
+ras.cut.1980 <- raster::reclassify (ras.cut.current, # all cutblocks 1940-1980
+                                      c (NA,NA, 0, 40,80,1, 0,40,0, 80,Inf,0))
+ras.cut.1990 <- raster::reclassify (ras.cut.current, # all cutblocks 1950-1990
+                                      c (NA,NA, 0, 30,70,1, 0,30,0, 70,Inf,0))
+ras.cut.2000 <- raster::reclassify (ras.cut.current, # all cutblocks 1960-2000
+                                      c (NA,NA, 0, 20,60,1, 0,20,0, 60,Inf,0))
+ras.cut.2010 <- raster::reclassify (ras.cut.current, # all cutblocks 1970-2010
+                                      c (NA,NA, 0, 10,50,1, 0,10,0, 50,Inf,0))
+# rasters have different extents; re-sample them to be consistent
+ras.cut.1980 <- resample (ras.cut.1980, ras.roads.1980, "bilinear")
+ras.cut.1990 <- resample (ras.cut.1990, ras.roads.1990, "bilinear")
+ras.cut.2000 <- resample (ras.cut.2000, ras.roads.2000, "bilinear")
+ras.cut.2010 <- resample (ras.cut.2010, ras.roads.2010, "bilinear")
+
+# add cutblocks and roads together
+ras.cut.road.1980 <- ras.roads.1980 + ras.cut.1980
+ras.cut.road.1990 <- ras.roads.1990 + ras.cut.1990
+ras.cut.road.2000 <- ras.roads.2000 + ras.cut.2000
+ras.cut.road.2010 <- ras.roads.2010 + ras.cut.2010
+
+ras.cut.road.1980 [ras.cut.road.1980 > 1] <- 1 # reclass
+ras.cut.road.1990 [ras.cut.road.1990 > 1] <- 1 # reclass
+ras.cut.road.2000 [ras.cut.road.2000 > 1] <- 1 # reclass
+ras.cut.road.2010 [ras.cut.road.2010 > 1] <- 1 # reclass
+
+writeRaster (ras.cut.road.1980, "D:\\tsr\\mackenzie\\data\\ras_cut_road_1980.tif", format = "GTiff", overwrite=TRUE) 
+writeRaster (ras.cut.road.1990, "D:\\tsr\\mackenzie\\data\\ras_cut_road_1990.tif", format = "GTiff", overwrite=TRUE) 
+writeRaster (ras.cut.road.2000, "D:\\tsr\\mackenzie\\data\\ras_cut_road_2000.tif", format = "GTiff", overwrite=TRUE) 
+writeRaster (ras.cut.road.2010, "D:\\tsr\\mackenzie\\data\\ras_cut_road_2010.tif", format = "GTiff", overwrite=TRUE) 
+
+# buffer in QGIS...
+
+# the buffered rasters
+ras.1980.cut.road.buff <- raster ("D:/tsr/mackenzie/data/ras_1980_cut_road_buff.tif") 
+ras.1990.cut.road.buff <- raster ("D:/tsr/mackenzie/data/ras_1990_cut_road_buff.tif") 
+ras.2000.cut.road.buff <- raster ("D:/tsr/mackenzie/data/ras_2000_cut_road_buff.tif") 
+ras.2010.cut.road.buff <- raster ("D:/tsr/mackenzie/data/ras_2010_cut_road_buff.tif") 
+
+ras.1980.cut.road.buff [ras.1980.cut.road.buff > 1] <- 1 # '2' are buffered areas; reclass to '1'
+ras.1990.cut.road.buff [ras.1990.cut.road.buff > 1] <- 1 # '2' are buffered areas; reclass to '1'
+ras.2000.cut.road.buff [ras.2000.cut.road.buff > 1] <- 1 # '2' are buffered areas; reclass to '1'
+ras.2010.cut.road.buff [ras.2010.cut.road.buff > 1] <- 1 # '2' are buffered areas; reclass to '1'
+ras.1980.cut.road.buff [is.na (ras.1980.cut.road.buff [])] <- 0 # make NA's = 0
+ras.1990.cut.road.buff [is.na (ras.1990.cut.road.buff [])] <- 0 # make NA's = 0
+ras.2000.cut.road.buff [is.na (ras.2000.cut.road.buff [])] <- 0 # make NA's = 0
+ras.2010.cut.road.buff [is.na (ras.2010.cut.road.buff [])] <- 0 # make NA's = 0
+
+## Load fire data
+ras.fire.current <- raster ("D:/tsr/mackenzie/data/tsa16_fire_age.tif")
+
+ras.fire.1980 <- raster::reclassify (ras.fire.current, # burns 1940-1980
+                                     c (1,40,0, 40,80,1, 80,Inf,0))
+ras.fire.1990 <- raster::reclassify (ras.fire.current, # burns 1950-1990
+                                     c (1,30,0, 30,70,1, 70,Inf,0))
+ras.fire.2000 <- raster::reclassify (ras.fire.current, # burns 1960-2000
+                                     c (1,20,0, 20,60,1, 60,Inf,0))
+ras.fire.2010 <- raster::reclassify (ras.fire.current, # burns 1960-2000
+                                     c (1,10,0, 10,50,1, 50,Inf,0))
+
+### add buffered disturbance to fire disturbance
+ras.1980.disturb <- ras.1980.cut.road.buff + ras.fire.1980
+ras.1990.disturb <- ras.1990.cut.road.buff + ras.fire.1990
+ras.2000.disturb <- ras.2000.cut.road.buff + ras.fire.2000
+ras.2010.disturb <- ras.2010.cut.road.buff + ras.fire.2010
+
+ras.1980.disturb [ras.1980.disturb > 1] <- 1 # reclass again...
+ras.1990.disturb [ras.1990.disturb > 1] <- 1 # reclass again...
+ras.2000.disturb [ras.2000.disturb > 1] <- 1 # reclass again...
+ras.2010.disturb [ras.2010.disturb > 1] <- 1 # reclass again...
+
+writeRaster (ras.1980.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_1980.tif", format = "GTiff", overwrite=TRUE)
+writeRaster (ras.1990.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_1990.tif", format = "GTiff", overwrite=TRUE)
+writeRaster (ras.2000.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_2000.tif", format = "GTiff", overwrite=TRUE)
+writeRaster (ras.2010.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_2010.tif", format = "GTiff", overwrite=TRUE)
+
+```
+
+### Summarize by AWA and LU
+
+```{r summarize by area}
+
+# get lu's and awa's in critical habitat only
+sf.hab.lu.mac <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.lu.mac))
+sf.hab.awa.mac <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.awa.mac))
+# some geometry issues; this fixes them
+sf.hab.lu.mac <- st_cast (sf.hab.lu.mac, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON") 
+sf.hab.awa.mac <- st_cast (sf.hab.awa.mac, "GEOMETRYCOLLECTION") %>% st_collection_extract ("POLYGON")
+
+#### extract disturbance by decade ####
+### calculate sum of pixel values (0 or 1) to get area of disturbance, by polygon (there can be multiple polygons/LU if in > 1 critical habitat type)
+
+## LUs ##
+sf.hab.lu.mac$disturb_ha_1980 <- exactextractr::exact_extract (ras.1980.disturb, 
+                                                                 sf.hab.lu.mac,
+                                                                'sum')
+sf.hab.lu.mac$disturb_ha_1990 <- exactextractr::exact_extract (ras.1990.disturb, 
+                                                                 sf.hab.lu.mac,
+                                                                'sum')
+sf.hab.lu.mac$disturb_ha_2000 <- exactextractr::exact_extract (ras.2000.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+sf.hab.lu.mac$disturb_ha_2010 <- exactextractr::exact_extract (ras.2010.disturb, 
+                                                               sf.hab.lu.mac,
+                                                               'sum')
+# calculate area of polys
+sf.hab.lu.mac$calc_area_m2 <- st_area (sf.hab.lu.mac)
+
+# drop geometry, calculate area in ha's and subset data
+disturb.hab.lu.mac <- as.data.table (sf::st_drop_geometry (sf.hab.lu.mac))
+disturb.hab.lu.mac$calc_area_ha <- disturb.hab.lu.mac$calc_area_m2 * 0.0001
+disturb.hab.lu.mac$calc_area_ha <- units::drop_units (disturb.hab.lu.mac$calc_area_ha)
+disturb.hab.lu.mac$herd_hab <- paste0 (disturb.hab.lu.mac$herd_name,
+                                       sep = "_",
+                                       disturb.hab.lu.mac$bchab_code 
+                                       )
+disturb.hab.lu.mac <- disturb.hab.lu.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'herd_hab', 'LANDSCAP_2', 'calc_area_ha', 'disturb_ha_1980', 'disturb_ha_1990', 'disturb_ha_2000', 'disturb_ha_2010')]
+# summarize by LU Name
+summ.disturb.lu <- disturb.hab.lu.mac [, .(disturb_ha_1980 = sum (disturb_ha_1980), 
+                                                 disturb_ha_1990 = sum (disturb_ha_1990),
+                                                 disturb_ha_2000 = sum (disturb_ha_2000),
+                                                 disturb_ha_2010 = sum (disturb_ha_2010),
+                                                 calc_area_ha = sum (calc_area_ha)), by = .(LANDSCAP_2)]
+summ.disturb.lu [, perc_disturb_1980 := (disturb_ha_1980 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_1990 := (disturb_ha_1990 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2000 := (disturb_ha_2000 / calc_area_ha)*100]
+summ.disturb.lu [, perc_disturb_2010 := (disturb_ha_2010 / calc_area_ha)*100]
+
+write.table (summ.disturb.lu,
+             file = "D:\\tsr\\mackenzie\\data\\disturbance_by_landscape_unit_historic.csv",
+             sep = ",")
+
+
+
+## Critical Habitat ##
+sf.bc.crit.mac$disturb_ha_1980 <- exactextractr::exact_extract (ras.1980.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_1990 <- exactextractr::exact_extract (ras.1990.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2000 <- exactextractr::exact_extract (ras.2000.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+sf.bc.crit.mac$disturb_ha_2010 <- exactextractr::exact_extract (ras.2010.disturb, 
+                                                               sf.bc.crit.mac,
+                                                               'sum')
+# calculate area of polys
+sf.bc.crit.mac$calc_area_m2 <- st_area (sf.bc.crit.mac)
+# drop geometry, calculate area in ha's and subset data
+disturb.hab.mac <- as.data.table (sf::st_drop_geometry (sf.bc.crit.mac))
+disturb.hab.mac$calc_area_ha <- disturb.hab.mac$calc_area_m2 * 0.0001
+disturb.hab.mac$calc_area_ha <- units::drop_units (disturb.hab.mac$calc_area_ha)
+disturb.hab.mac$herd_hab <- paste0 (disturb.hab.mac$herd_name,
+                                        sep = "_",
+                                        disturb.hab.mac$bchab_code 
+                                       )
+disturb.hab.mac <- disturb.hab.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'herd_hab', 'calc_area_ha', 'disturb_ha_1980', 'disturb_ha_1990', 'disturb_ha_2000', 'disturb_ha_2010')]
+
+# summarize by crit hab
+disturb.hab.mac <- disturb.hab.mac [, .(disturb_ha_1980 = sum (disturb_ha_1980), 
+                                             disturb_ha_1990 = sum (disturb_ha_1990),
+                                             disturb_ha_2000 = sum (disturb_ha_2000),
+                                             disturb_ha_2010 = sum (disturb_ha_2010),
+                                             calc_area_ha = sum (calc_area_ha) ), by = .(herd_hab)]
+disturb.hab.mac [, perc_disturb_1980 := (disturb_ha_1980 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_1990 := (disturb_ha_1990 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2000 := (disturb_ha_2000 / calc_area_ha)*100]
+disturb.hab.mac [, perc_disturb_2010 := (disturb_ha_2010 / calc_area_ha)*100]
+
+write.table (disturb.hab.mac,
+             file = "D:\\tsr\\mackenzie\\data\\disturbance_by_crit_habitat_historic.csv",
+             sep = ",")
+
+
+## Watershed Areas ##
+sf.hab.awa.mac$disturb_ha_1980 <- exactextractr::exact_extract (ras.1980.disturb, 
+                                                                 sf.hab.awa.mac,
+                                                                'sum')
+sf.hab.awa.mac$disturb_ha_1990 <- exactextractr::exact_extract (ras.1990.disturb, 
+                                                                 sf.hab.awa.mac,
+                                                                'sum')
+sf.hab.awa.mac$disturb_ha_2000 <- exactextractr::exact_extract (ras.2000.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+sf.hab.awa.mac$disturb_ha_2010 <- exactextractr::exact_extract (ras.2010.disturb, 
+                                                               sf.hab.awa.mac,
+                                                               'sum')
+# calculate area of polys
+sf.hab.awa.mac$calc_area_m2 <- st_area (sf.hab.awa.mac)
+# drop geometry, calculate area in ha's and subset data
+disturb.hab.awa.mac <- as.data.table (sf::st_drop_geometry (sf.hab.awa.mac))
+disturb.hab.awa.mac$calc_area_ha <- disturb.hab.awa.mac$calc_area_m2 * 0.0001
+disturb.hab.awa.mac$calc_area_ha <- units::drop_units (disturb.hab.awa.mac$calc_area_ha)
+disturb.hab.awa.mac <- disturb.hab.awa.mac [, c ('TSA_NUMB_1', 'herd_name', 'bc_habitat_type', 'bchab_code', 'WATERSHED_', 'calc_area_ha', 'disturb_ha_1980', 'disturb_ha_1990', 'disturb_ha_2000', 'disturb_ha_2010')]
+
+# summarize by AWA
+summ.disturb.awa <- disturb.hab.awa.mac [, .(disturb_ha_1980 = sum (disturb_ha_1980), 
+                                                 disturb_ha_1990 = sum (disturb_ha_1990),
+                                                 disturb_ha_2000 = sum (disturb_ha_2000),
+                                                 disturb_ha_2010 = sum (disturb_ha_2010),
+                                                 calc_area_ha = sum (calc_area_ha)), by = .(WATERSHED_)]
+summ.disturb.awa [, perc_disturb_1980 := (disturb_ha_1980 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_1990 := (disturb_ha_1990 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2000 := (disturb_ha_2000 / calc_area_ha)*100]
+summ.disturb.awa [, perc_disturb_2010 := (disturb_ha_2010 / calc_area_ha)*100]
+
+write.table (summ.disturb.awa,
+             file = "D:\\tsr\\mackenzie\\data\\disturbance_by_watershed_historic.csv",
              sep = ",")
 
 ```
