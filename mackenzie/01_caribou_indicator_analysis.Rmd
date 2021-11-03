@@ -25,7 +25,7 @@ Here I calculate indicators of caribou habitat 'disturbance' to support the Mack
 
 'Disturbance' is defined here as areas of caribou range that have been modified by forestry (i.e., areas within 500 m of roads or forestry cutblocks) or burned in the last 40 years. These disturbances have been negatively correlated with caribou survival rates and population abundance, and therefore are often used to indicate the effects of habitat change caused by land use and fire on caribou populations. Other disturbances (e.g., mountain pine beetle or other industrial activities like oil and gas or mining development) also negatively influence caribou, but we do not account for them here, and focus exclusively on fire and forestry here because forestry is the scope of the timber supply review and future forestry and fire can be simulated with the timber supply simulation model. 
 
-I calculate disturbance for two 'sensitivities' from the timber supply model: the 'base case' and 'indigenous a.... f..." sensitivities. These represent two alternative simulations of future forest harvest in the Mackenzie timber supply area.
+I calculate disturbance for two 'sensitivities' from the timber supply model: the 'base case' and 'Indigenous alternative flow" sensitivities. These represent two alternative simulations of future forest harvest in the Mackenzie timber supply area.
 
 The analysis here focuses exclusively on the hypothetical influence of forestry development and fire on caribou habitat. We do not analyze or discuss the potential influence of population management actions, such as maternity pens or wolf reduction, on caribou populations.  
 
@@ -297,7 +297,7 @@ writeRaster (ras.2090.disturb, "D:\\tsr\\mackenzie\\data\\ras_disturb_2090.tif",
 
 ```
 
-### Indigenous Case Analysis
+### Indigenous Alternative Flow Analysis
 ```{r indigenous create raster of total disturbance by decade 2020-2090}
 
 ## 2020 (current)
@@ -468,10 +468,9 @@ writeRaster (ras.2090.disturb, "D:\\tsr\\mackenzie\\data\\IAF\\ras_disturb_iaf_2
 
 ```
 
-
 I summarized the amount of disturbance in caribou critical habitat, where it is defined, or in areas greater then or less than 1,300 m in elevation where it is not defined, and within [assessment watershed areas](https://catalogue.data.gov.bc.ca/dataset/freshwater-atlas-assessment-watersheds) and [landscape units](https://catalogue.data.gov.bc.ca/dataset/landscape-units-of-british-columbia-current) overlapping critical habitat, by decade, for each scenario, from 2020 to 2090.
  
-```{r summarize data by area and time - can use for both case case and indigenous, but change output name}
+```{r summarize data by area and time - can use for both case case and indigenous Alternative Flow, but change output name}
 
 # get lu's and awa's in critical habitat only
 sf.hab.lu.mac <- st_make_valid (sf::st_intersection (sf.bc.crit.mac, sf.lu.mac))
