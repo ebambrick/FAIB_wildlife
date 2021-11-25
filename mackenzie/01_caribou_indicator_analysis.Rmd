@@ -92,7 +92,7 @@ ras.fire.sim <- ras.fire.sim - 329 # changes value to decade of fire
 ras.fire.sim <- raster::reclassify (ras.fire.sim, c (-Inf,0,0)) 
 
 ## future logged areas
-ras.cut.sim <- raster ("D:/tsr/mackenzie/data/base_case/IAF/Logged_1_7.tif")
+ras.cut.sim <- raster ("D:/tsr/mackenzie/data/base_case/Logged_1_7.tif")
 ras.cut.sim <- ras.cut.sim - 329 # changes value to decade of logging
 ras.cut.sim <- raster::reclassify (ras.cut.sim, c (-Inf,0,0)) 
 
