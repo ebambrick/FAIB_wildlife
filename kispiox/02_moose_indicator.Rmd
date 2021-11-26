@@ -106,6 +106,26 @@ Moose have an important and complex relationship with forestry development. Base
 ### Population Status and Trend
 Moose population data was obtained by searching the BC government's [species inventory web explorer (SIWE)](https://catalogue.data.gov.bc.ca/dataset/species-inventory-web-explorer-siwe) for 'moose' inventory data collected in the Skeena region. Any data on moose density, populations, bull:cow ratios and calf:cow ratios was compiled. 
 
+
+Surveys completed in Nass Wildlife Area (NWA), which overlaps parrs of the western part of Kispiox TSA and WMUs 6-15 and 6-30.
+
+In NWA, decreasing population trend from 2001 to 2011, but increase again between 2011 and 2017 (but not to 2001 peak).
+
+Kispiox Valley survey area overlaps much of the Kipsiox TSA, including  much of wildlife management unit 6-30, and portions of 6-08, 6-09 and 6-15. Surveyed in 1999, 2014 and 2020 (prelimnary results) suggested no popualtion delicne, despite decreasing hutner success rates. Hunter success declien may be due to older cutblocks, adn poorer sightlines for hunters, limiting their success. 
+
+
+In teh Kispiox area, hunter harvest generally incfreased form the late 1970's (~20 animals) to mid 1990's (~40 animals), but declined from the mid 1990's to 2010 (~15 animals). Hunter effort (moose hunter days/kill) increased from 2005 (~30 days/kill) to 2011 (~80 days/kill). In the Bulkley-Lakes region (southern part of the Kispioc TSA), moose harvest has been declining from the 1980's (~1300 aniamsl) to 2010 (~600 aniamls). Harvest delvinces generall correalted with teh numbe rof resident hunters, suggesting delcin in harvets is due to decline in hunter particaption in moose hunting. Hunter effort is realtivel low and has been mostly below 35 days/kill from teh late 1920's to 2010. Mangament target is 25 to 35 days/kill
+
+
+
+Thiessen, C. 2014. Skeena Region moose harvest overview: 1976 – 2011. BC Ministry of 
+Forests, Lands and Natural Resource Operations. Smithers, BC. 57 pp.
+
+
+
+
+
+
 ```{r, moose pop density map, fig.cap = "Figure 1. Most recent moose density estimates by wildlife management unit in the Okanagan Timber Supply Area.", eval = T, echo = F, message = F, warning = F}
 data.moose.pop <- read.csv (file = here ("wildlife/data/okanagan/moose_density_20200504.csv"),
                             header = T)
@@ -160,6 +180,109 @@ ggplot (data = data.wmu.moose.dns) +
 ```
 
 
+The ratio of bull moose to cow moose is often used to indicate hunting pressure on moose populations, and a ratio of greater than 30 bulls to 100 cows is a typical management target, where populations below that indicate a heavily hunted, and potentially unstable population ( [Young and Boertje 2008](https://alcesjournal.org/index.php/alces/article/view/37); [Walker et al. 2017](http://a100.gov.bc.ca/pub/siwe/download.do?docId=34052)). 
+
+```{r, moose bull/cow ratio, fig.cap = "Figure 2. Most recent moose bull/cow ratios by wildlife management unit in the Okanagan Timber Supply Area.", eval = T, echo = F, message = F, warning = F}
+data.moose.pop <- read.csv (file = here ("wildlife/data/okanagan/moose_density_20200504.csv"),
+                            header = T)
+data.wmu <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "clip_wmu", 
+                         quiet = T)
+data.tsa <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "tsa_outer", 
+                         quiet = T)
+data.wmu.moose <- merge (data.wmu, data.moose.pop, all = TRUE)
+data.wmu.moose.bc <- data.wmu.moose %>%
+                        filter (!is.na (bulls_100cows))
+### FILTER OUT PARTIAL  WMUs ###
+#### NOT 2 to 11, 32, 46 to 49, 62
+data.wmu.moose.bc.2 <- data.wmu.moose.bc [c (1, 12:31, 33:45, 50:61), ] 
+data.wmu.moose.bc.2 <- data.wmu.moose.bc.2 [c (1, 2, 8, 15, 19, 21, 24, 25, 27, 31, 32, 34, 35, 41, 45), ] 
+# get the latest number
+data.wmu.moose.bc.2$brks_bc <- cut (data.wmu.moose.bc.2$bulls_100cows, 
+                                        breaks = c (0, 15, 30, 45, 60, 75, 90, Inf), 
+                                        labels = c ("0 - 14", "15 - 29", "30 - 44", "45 - 59",
+                                                    "60 - 74", "75 - 89", ">90"))
+data.wmu.moose.bc.2 <- cbind (data.wmu.moose.bc.2, st_coordinates (st_centroid (data.wmu.moose.bc.2)))
+
+ggplot (data = data.wmu.moose.bc.2) +
+        geom_sf (data = data.wmu.moose.bc.2, aes (fill = brks_bc)) +
+        geom_sf (data = data.tsa, fill = NA) +
+        scale_fill_discrete () +
+        scale_fill_brewer (type = "div",
+                           palette = "RdBu",
+                           direction = -1,
+                           aesthetics = "fill",
+                           na.value = "orange") +
+        annotation_scale (location = "br", 
+                          width_hint = 0.5, 
+                          height = unit (0.1, "cm")) +
+        annotation_north_arrow (location = "tl", 
+                                which_north = "true", 
+                                style = north_arrow_fancy_orienteering,
+                                height = unit (1.25, "cm"),
+                                width = unit (1, "cm")) +
+        labs (fill = "Bulls:100 Cows") +
+        geom_label(data = data.wmu.moose.bc.2, 
+                   aes(X, Y, label = bulls_100cows), 
+                   size = 2.5) +
+        theme (axis.title.x = element_blank(),
+               axis.title.y = element_blank())
+
+```
+
+
+The ratio of calves to cow moose is often used as an indicator of moose population trend, where ratios of 25 to 30 indicate a stable population, and ratios greater than 30 indicate an increasing population ( [FLNRORD 2019](http://www.env.gov.bc.ca/fw/wildlife/management-issues/docs/2019%20Moose%20Factsheet.pdf)). 
+
+```{r, calf/cow ratio, fig.cap = "Figure 3. Most recent moose calf/cow ratios by wildlife management unit in the Okanagan Timber Supply Area.", eval = T, echo = F, message = F, warning = F}
+data.moose.pop <- read.csv (file = here ("wildlife/data/okanagan/moose_density_20200504.csv"),
+                            header = T)
+data.wmu <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "clip_wmu", 
+                         quiet = T)
+data.tsa <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "tsa_outer", 
+                         quiet = T)
+data.wmu.moose <- merge (data.wmu, data.moose.pop, all = TRUE)
+data.wmu.moose.bc <- data.wmu.moose %>%
+                        filter (!is.na (calves_100cows))
+### FILTER OUT PARTIAL  WMUs ###
+#### NOT 2 to 11, 32, 46 to 49, 62
+data.wmu.moose.bc.2 <- data.wmu.moose.bc [c (1, 12:31, 33:45, 50:61), ] 
+data.wmu.moose.bc.2 <- data.wmu.moose.bc.2 [c (1, 2, 8, 15, 19, 21, 24, 25, 27, 31, 32, 34, 35, 41, 45), ] 
+data.wmu.moose.bc.2$brks_bc <- cut (data.wmu.moose.bc.2$calves_100cows, 
+                                        breaks = c (0, 10, 20, 30, 40, 50, 60, 70, Inf), 
+                                        labels = c ("0 - 9", "10 - 19", "20 - 29", "30 - 39",
+                                                    "40 - 49", "50 - 59", "60 - 69", ">70"))
+data.wmu.moose.bc.2 <- cbind (data.wmu.moose.bc.2, st_coordinates (st_centroid (data.wmu.moose.bc.2)))
+
+ggplot (data = data.wmu.moose.bc.2) +
+        geom_sf (data = data.wmu.moose.bc.2, aes (fill = brks_bc)) +
+        geom_sf (data = data.tsa, fill = NA) +
+        scale_fill_discrete () +
+        scale_fill_brewer (type = "div",
+                           palette = "RdBu",
+                           direction = -1,
+                           aesthetics = "fill",
+                           na.value = "orange") +
+        annotation_scale (location = "br", 
+                          width_hint = 0.5, 
+                          height = unit (0.1, "cm")) +
+        annotation_north_arrow (location = "tl", 
+                                which_north = "true", 
+                                style = north_arrow_fancy_orienteering,
+                                height = unit (1.25, "cm"),
+                                width = unit (1, "cm")) +
+        labs (fill = "Calves:100 Cows") +
+        geom_label(data = data.wmu.moose.bc.2, 
+                   aes(X, Y, label = calves_100cows), 
+                   size = 2.5) +
+        theme (axis.title.x = element_blank(),
+               axis.title.y = element_blank())
+
+```
+
+
 
 ```{r gbpu bear density, warning = F, message = F, echo = F}
 
@@ -192,6 +315,52 @@ Overlapping the Kispiox Timber Supply Area") +
 
 ### Roads
 
+```{r, calc current road density, eval = F, echo = F, message = F, warning = F, include = F}
+data.roads <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                           layer = "union_roads_final", 
+                           quiet = T)
+data.roads <- as.data.frame (data.roads)
+data.road.length <- as.data.table (data.roads %>%
+                                    group_by (WATERSHED_FEATURE_ID) %>%
+                                    summarise (sum_length_km = sum (Length_km)))
+data.awa <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "clip_fawa", 
+                         quiet = T)
+data.awa.roads <- merge (data.awa, data.road.length, all = TRUE)
+data.awa.roads$road_density <- data.awa.roads$sum_length_km / (data.awa.roads$AREA_HA*0.01) # ha to km2
+st_write (data.awa.roads, 
+          dsn = here ("wildlife/data/okanagan/data_awa_roads.shp"))
+```
+
+
+```{r, map current road density, fig.cap = "Figure 5. Map of current road density by freshwater assessment watershed area in the Okanagan Timber Supply Area.", eval = T, echo = F, message = F, warning = F}
+data.awa.roads <- sf::st_read (dsn = here ("wildlife/data/okanagan/data_awa_roads.shp"),
+                               quiet = T)
+data.awa.roads$rd_dn [is.na (data.awa.roads$rd_dn)] <- 0
+data.awa.roads$brks_rd_dn <- cut (data.awa.roads$rd_dn, 
+                                  breaks = c (-0.1, 0.2, 0.4, 0.6, 0.8, 1.0, 1.2, 1.4, 1.6, 1.8, 2.0, Inf), 
+                                  labels = c ("0 - 0.19", "0.20 - 0.39", "0.40 - 0.59", "0.60 - 0.79",
+                                              "0.80 - 0.99", "1.00 - 1.19", "1.20 - 1.39", "1.40 - 1.59",
+                                              "1.60 - 1.79", "1.80 - 1.99", ">2.00"))
+ggplot (data = data.awa.roads) +
+        geom_sf (data = data.awa.roads, aes (fill = brks_rd_dn)) +
+        scale_fill_discrete () +
+        scale_fill_brewer (type = "div",
+                           palette = "RdBu",
+                           direction = -1,
+                           aesthetics = "fill",
+                           na.value = "orange") +
+        annotation_scale (location = "br", 
+                          width_hint = 0.5, 
+                          height = unit (0.1, "cm")) +
+        annotation_north_arrow (location = "tl", 
+                                which_north = "true", 
+                                style = north_arrow_fancy_orienteering,
+                                height = unit (1.25, "cm"),
+                                width = unit (1, "cm")) +
+        labs (fill = "Road Density (km/km2)") 
+
+```
 
 
 ```{r gbpu lu road density, warning = F, message = F, echo = F}
@@ -228,6 +397,114 @@ Overlapping the Kispiox Timber Supply Area") +
 ### Forest Stand Characteristics
 
 
+```{r, calc area of conifer stands >15m, eval = F, echo = F, message = F, warning = F, include = F}
+data.vri <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "union_vri_lean", 
+                         quiet = T)
+data.vri <- as.data.frame (data.vri)
+data.area.height <- as.data.table (data.vri %>%
+                                    filter (SPECIES_CD_1 == "B" | SPECIES_CD_1 == "BA" | SPECIES_CD_1 == "BB" |
+                                            SPECIES_CD_1 == "BG" | SPECIES_CD_1 == "BL" | SPECIES_CD_1 == "BN" |
+                                            SPECIES_CD_1 == "C" | SPECIES_CD_1 == "CW" | SPECIES_CD_1 == "F" | 
+                                            SPECIES_CD_1 == "FD" | SPECIES_CD_1 == "FDC" | SPECIES_CD_1 == "FDI" | 
+                                            SPECIES_CD_1 == "H" | SPECIES_CD_1 == "HM" | SPECIES_CD_1 == "HW" | 
+                                            SPECIES_CD_1 == "HX" | SPECIES_CD_1 == "HXM" | SPECIES_CD_1 == "P" | 
+                                            SPECIES_CD_1 == "PA" | SPECIES_CD_1 == "PF" | SPECIES_CD_1 == "PJ" | 
+                                            SPECIES_CD_1 == "PL" | SPECIES_CD_1 == "PLC" | SPECIES_CD_1 == "PLI" | 
+                                            SPECIES_CD_1 == "PR" | SPECIES_CD_1 == "PW" | SPECIES_CD_1 == "PX" | 
+                                            SPECIES_CD_1 == "PXJ" | SPECIES_CD_1 == "PY" | SPECIES_CD_1 == "S" | 
+                                            SPECIES_CD_1 == "SA" | SPECIES_CD_1 == "SB" | SPECIES_CD_1 == "SE" | 
+                                            SPECIES_CD_1 == "SS" | SPECIES_CD_1 == "SW" | SPECIES_CD_1 == "SX" | 
+                                            SPECIES_CD_1 == "SXB" | SPECIES_CD_1 == "SXE" | SPECIES_CD_1 == "SXL" | 
+                                            SPECIES_CD_1 == "SXS" | SPECIES_CD_1 == "SXW" | SPECIES_CD_1 == "SXX" | 
+                                           SPECIES_CD_1 == "YC") %>%
+                                    filter (PROJ_HEIGHT_1 >= 15) %>%
+                                    filter (AREA_HA >= 5) %>%
+                                    group_by (WATERSHED_FEATURE_ID) %>%
+                                    summarise (sum_area_ha = sum (AREA_HA)))
+data.awa <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "clip_fawa", 
+                         quiet = T)
+data.awa.height <- merge (data.awa, data.area.height, all = TRUE)
+data.awa.height$prop_moose_cover <- data.awa.height$sum_area_ha / data.awa.height$AREA_HA # proportion moose cover
+st_write (data.awa.height, 
+          dsn = here ("wildlife/data/okanagan/data_awa_cover.shp"))
+```
+
+```{r, map current forest cover, fig.cap = "Figure 6. Map of current percentage of conifer forest cover greater than 14 m tall and 5 ha patch size by freshwater assessment watershed area in the Okanagan Timber Supply Area.", eval = T, echo = F, message = F, warning = F}
+data.awa.cover <- sf::st_read (dsn = here ("wildlife/data/okanagan/data_awa_cover.shp"),
+                               quiet = T)
+data.awa.cover$prp_ [is.na (data.awa.cover$prp_)] <- 0
+data.awa.cover$brks_prop_moose <- cut (data.awa.cover$prp_, 
+                                       breaks = c (-0.1, 0.2, 0.4, 0.6, 0.8, Inf), 
+                                       labels = c ("0 - 0.19", "0.20 - 0.39", "0.40 - 0.59", "0.60 - 0.79",
+                                                   "0.80 - 1.00"))
+ggplot (data = data.awa.cover) +
+        geom_sf (data = data.awa.cover, aes (fill = brks_prop_moose)) +
+        scale_fill_discrete () +
+        scale_fill_brewer (type = "div",
+                           palette = "RdBu",
+                           direction = -1,
+                           aesthetics = "fill",
+                           na.value = "orange") +
+        annotation_scale (location = "br", 
+                          width_hint = 0.5, 
+                          height = unit (0.1, "cm")) +
+        annotation_north_arrow (location = "tl", 
+                                which_north = "true", 
+                                style = north_arrow_fancy_orienteering,
+                                height = unit (1.25, "cm"),
+                                width = unit (1, "cm")) +
+        labs (fill = "Proportion of Conifer Cover 
+> 14m tall and 5 ha in Size") 
+```
+
+```{r, calc area of cutblocks 5 to 30 yo, eval = F, echo = F, message = F, warning = F, include = F}
+data.cutblocks <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                               layer = "union_cutblocks", 
+                               quiet = T)
+data.cutblocks <- as.data.frame (data.cutblocks)
+data.cut.5.30 <- as.data.table (data.cutblocks %>%
+                                    filter (HARVEST_YEAR >= 1988 & HARVEST_YEAR <= 2013) %>% # cutblocks 5 to 30 yo
+                                    group_by (WATERSHED_FEATURE_ID) %>%
+                                    summarise (sum_area_ha = sum (AREA_HA)))
+data.cut.5.30 <- data.cut.5.30 [-1, ]
+data.awa <- sf::st_read (dsn = "C:\\Work\\tsr\\data\\okanagan_tsr_20200407.gdb",
+                         layer = "clip_fawa", 
+                         quiet = T)
+data.awa.cut <- merge (data.awa, data.cut.5.30, all = TRUE)
+data.awa.cut$prop_moose_food <- data.awa.cut$sum_area_ha / data.awa.cut$AREA_HA # proportion moose forage (5 to 30 yo cut)
+st_write (data.awa.cut, 
+          dsn = here ("wildlife/data/okanagan/data_awa_cut5to30.shp"))
+```
+
+```{r, map cutblocks 5 to 30 yo, fig.cap = "Figure 7. Map of proportion of area of cutblocks 5 to 30 years old by freshwater assessment watershed area in the Okanagan Timber Supply Area.", eval = T, echo = F, message = F, warning = F}
+data.awa.cut <- sf::st_read (dsn = here ("wildlife/data/okanagan/data_awa_cut5to30.shp"),
+                             quiet = T)
+data.awa.cut$prp__ [is.na (data.awa.cut$prp__)] <- 0
+data.awa.cut$brks_prop_cut <- cut (data.awa.cut$prp__, 
+                                     breaks = c (-0.1, 0.2, 0.4, 0.6, 0.8, 1), 
+                                     labels = c ("0 - 0.19", "0.20 - 0.39", "0.40 - 0.59", "0.60 - 0.79", 
+                                                 "0.80 - 1.00"))
+ggplot (data = data.awa.cut, aes (fill = brks_prop_cut)) +
+        geom_sf (data = data.awa.cut, aes (fill = brks_prop_cut)) +
+       # scale_fill_discrete () +
+        scale_fill_brewer (type = "div",
+                           palette = "RdBu",
+                           direction = -1,
+                           aesthetics = "fill",
+                           na.value = "orange") +
+        annotation_scale (location = "br", 
+                          width_hint = 0.5, 
+                          height = unit (0.1, "cm")) +
+        annotation_north_arrow (location = "tl", 
+                                which_north = "true", 
+                                style = north_arrow_fancy_orienteering,
+                                height = unit (1.25, "cm"),
+                                width = unit (1, "cm")) +
+        labs (fill = "Proportion of 5 to 30 year 
+old cutblocks") 
+```
 
 ```{r gbpu lu mid-seral, warning = F, message = F, echo = F}
 
